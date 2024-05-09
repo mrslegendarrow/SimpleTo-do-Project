@@ -1,19 +1,27 @@
-actor Counter {
+import Nat "mo:base/Nat";
+import Nat64 "mo:base/Nat64";
+import Cycles "mo:base/ExperimentalCycles";
 
-  stable var counter = 0;
+actor HelloCycles  {
 
-  // Get the value of the counter.
-  public query func get() : async Nat {
-    return counter;
+  let limit = 10_000_000;
+
+  public func wallet_balance() : async Nat {
+    return Cycles.balance();
   };
 
-  // Set the value of the counter.
-  public func set(n : Nat) : async () {
-    counter := n;
+  public func wallet_receive() : async { accepted: Nat64 } {
+    let available = Cycles.available();
+    let accepted = Cycles.accept(Nat.min(available, limit));
+    { accepted = Nat64.fromNat(accepted) };
   };
 
-  // Increment the value of the counter.
-  public func inc() : async () {
-    counter += 1;
+  public func transfer(
+    receiver : shared () -> async (),
+    amount : Nat) : async { refunded : Nat } {
+      Cycles.add(amount);
+      await receiver();
+      { refunded = Cycles.refunded() };
   };
+
 };
